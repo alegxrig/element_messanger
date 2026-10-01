@@ -1,6 +1,10 @@
 # Element Matrix Local Lab
 
 Локальный тестовый стенд **Matrix + Element Web + MatrixRTC/LiveKit** для Ubuntu.
+https://element.m.localhost
+
+sudo cp caddy-root.crt /usr/local/share/ca-certificates/element-matrix-lab.crt
+sudo update-ca-certificates
 
 Разворачивается полностью на ноутбуке: без публичного DNS, без VPS, без внешних доменов.
 HTTPS обеспечивается Caddy с приватным локальным CA.
