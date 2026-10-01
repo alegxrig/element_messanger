@@ -1,0 +1,11 @@
+{
+  "default_server_name": "matrix.m.localhost",
+  "default_server_config": {
+    "m.homeserver": {
+      "base_url": "https://matrix.m.localhost"
+    }
+  },
+  "disable_custom_urls": true,
+  "disable_guests": true,
+  "brand": "Element"
+}

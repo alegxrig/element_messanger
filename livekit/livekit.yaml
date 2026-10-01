@@ -1,0 +1,24 @@
+port: 7880
+log_level: info
+
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+  use_external_ip: false
+  node_ip: 10.10.112.207
+  allow_tcp_fallback: true
+
+room:
+  auto_create: false
+
+keys:
+  devkey: "4de878972277c85a4318c1001a69bd74f40a6de1545cb754614fe16bb85904f5"
+
+turn:
+  enabled: true
+  udp_port: 3478
+
+webhook:
+  api_key: devkey
+  urls:
+    - "http://lk-jwt:8080/sfu_webhook"

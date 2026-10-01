@@ -1,0 +1,46 @@
+# Local-only HTTPS. Caddy uses a private CA here.
+
+element.m.localhost {
+    tls internal
+    encode gzip zstd
+    reverse_proxy element:80
+}
+
+matrix.m.localhost {
+    tls internal
+    reverse_proxy synapse:8008
+}
+
+matrix-rtc.m.localhost {
+    tls internal
+
+    # lk-jwt-service exposes /sfu/get and /healthz.
+    # Strip /livekit/jwt before proxying, as required by its API path.
+    @jwt_service path /livekit/jwt/sfu/get /livekit/jwt/healthz
+    handle @jwt_service {
+        uri strip_prefix /livekit/jwt
+        reverse_proxy lk-jwt:8080 {
+            header_up Host {host}
+            header_up X-Forwarded-Server {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+        }
+    }
+
+    # LiveKit SFU signalling is exposed at /livekit/sfu.
+    handle {
+        reverse_proxy livekit:7880 {
+            header_up Host {host}
+            header_up X-Forwarded-Server {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+        }
+    }
+}
+
+# Same homeserver, federation endpoint on 8448.
+# lk-jwt-service looks up OpenID userinfo here.
+matrix.m.localhost:8448 {
+    tls internal
+    reverse_proxy synapse:8008
+}

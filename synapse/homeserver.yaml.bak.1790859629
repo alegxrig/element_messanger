@@ -1,0 +1,78 @@
+server_name: "matrix.m.localhost"
+public_baseurl: "https://matrix.m.localhost/"
+
+pid_file: /data/homeserver.pid
+
+log_config: /data/matrix.m.localhost.log.config
+signing_key_path: /data/matrix.m.localhost.signing.key
+media_store_path: /data/media_store
+
+macaroon_secret_key: "4e4d153ce54f7b16e4f46ea271b6081f34f4cbb7b6539d86ba80b413aff4a3e2"
+form_secret: "ae366e0651b28a0ef145de2a2fa9be7cac71137d08dd6567a771bf4fc7ca5984"
+registration_shared_secret: "17f15191b16128c9e73cafd161ba071fcc49479819745f4d7fcec78659ba40c4"
+
+report_stats: false
+
+enable_registration: false
+
+listeners:
+  - port: 8008
+    bind_addresses:
+      - 0.0.0.0
+    type: http
+    tls: false
+    x_forwarded: true
+    resources:
+      - names:
+          - client
+          - federation
+
+# MatrixRTC Authorization Service needs either a federation or openid listener.
+
+# PostgreSQL instead of SQLite.
+database:
+  name: psycopg2
+  txn_limit: 10000
+  args:
+    user: synapse
+    password: "5d316b31a3c781c760f6d14e1274d98df39388f7a2a6a45c6648c9466c99be0f"
+    database: synapse
+    host: postgres
+    port: 5432
+    cp_min: 5
+    cp_max: 10
+
+serve_server_wellknown: true
+
+# MatrixRTC / Element Call prerequisites.
+experimental_features:
+  msc3266_enabled: true
+  msc4143_enabled: true
+  msc4222_enabled: true
+
+max_event_delay_duration: 24h
+
+rc_message:
+  per_second: 0.5
+  burst_count: 30
+
+rc_delayed_event_mgmt:
+  per_second: 1
+  burst_count: 20
+
+matrix_rtc:
+  transports:
+    - type: livekit
+      livekit_service_url: "https://matrix-rtc.m.localhost/livekit/jwt"
+
+# Needed because Synapse does not currently derive the RTC focus from
+# matrix_rtc.transports in .well-known automatically.
+extra_well_known_client_content:
+  org.matrix.msc4143.rtc_foci:
+    - type: livekit
+      livekit_service_url: "https://matrix-rtc.m.localhost/livekit/jwt"
+
+user_directory:
+  enabled: true
+  search_all_users: true
+  prefer_local_users: true

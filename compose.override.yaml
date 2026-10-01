@@ -1,0 +1,10 @@
+services:
+  caddy:
+    ports:
+      - "127.0.0.1:8448:8448"
+    networks:
+      matrixnet:
+        aliases:
+          - matrix.m.localhost
+          - matrix-rtc.m.localhost
+          - element.m.localhost

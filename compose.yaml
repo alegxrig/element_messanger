@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: synapse
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synapse -d synapse"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [matrixnet]
+
+  synapse:
+    image: matrixdotorg/synapse:v1.161.0
+    restart: unless-stopped
+    environment:
+      SYNAPSE_CONFIG_PATH: /data/homeserver.yaml
+      UID: ${HOST_UID}
+      GID: ${HOST_GID}
+    volumes:
+      - ./synapse:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8008"
+    networks: [matrixnet]
+
+  element:
+    image: ghcr.io/element-hq/element-web:v1.12.30
+    restart: unless-stopped
+    volumes:
+      - ./element/config.json:/app/config.json:ro
+    expose:
+      - "80"
+    networks: [matrixnet]
+
+  livekit:
+    image: livekit/livekit-server:v1.13.7
+    restart: unless-stopped
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes:
+      - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
+    expose:
+      - "7880"
+    ports:
+      - "${HOST_LAN_IP}:7881:7881/tcp"
+      - "${HOST_LAN_IP}:7882:7882/udp"
+      - "${HOST_LAN_IP}:3478:3478/udp"
+    networks: [matrixnet]
+
+  lk-jwt:
+    image: ghcr.io/element-hq/lk-jwt-service:0.7.0
+    restart: unless-stopped
+    environment:
+      LIVEKIT_URL: "wss://matrix-rtc.m.localhost/livekit/sfu"
+      LIVEKIT_KEY: "devkey"
+      LIVEKIT_SECRET: "${LIVEKIT_SECRET}"
+      LIVEKIT_JWT_BIND: ":8080"
+      LIVEKIT_FULL_ACCESS_HOMESERVERS: "matrix.m.localhost"
+      LIVEKIT_CS_API_URL_OVERRIDES: "matrix.m.localhost=http://synapse:8008"
+      LIVEKIT_SANITY_CHECK_INTERVAL_SECONDS: "30"
+      LIVEKIT_LOG_LEVEL: "info"
+      # Local development only: Caddy uses a private CA.
+      LIVEKIT_INSECURE_SKIP_VERIFY_TLS: "YES_I_KNOW_WHAT_I_AM_DOING"
+    expose:
+      - "8080"
+    depends_on:
+      - synapse
+      - livekit
+    networks: [matrixnet]
+
+  caddy:
+    image: caddy:2.11.4-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - synapse
+      - element
+      - livekit
+      - lk-jwt
+    networks: [matrixnet]
+
+networks:
+  matrixnet:
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
